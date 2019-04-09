@@ -1,39 +1,10 @@
-//
 <?
-define("LOG_FILENAME", $_SERVER["DOCUMENT_ROOT"]."/.log.txt");
-$APPLICATION->IncludeFile("/local/php_interface/include/config.php");
-$APPLICATION->IncludeFile("/local/php_interface/include/functions.php");
-$APPLICATION->IncludeFile("/local/php_interface/include/tasks.php");
+
 CModule::IncludeModule("socialnetwork");
 CModule::IncludeModule("main");
 CModule::IncludeModule("crm");
 CModule::IncludeModule("tasks");
-$APPLICATION->addHeadScript('/local/js/1cbit/show-sub-tasks-gantt.js');
-AddEventHandler("crm", "OnBeforeCrmLeadAdd", Array("MyClass", "BeforeLogin"));
-class MyClass
-{
-  function BeforeLogin(&$arFields)
-  {
-//        mtLin($_SESSION);
-//        mtLin($arFields);
-  }
-}
 
-//AddEventHandler("main", "OnEndBufferContent", "renameGroups");
-AddEventHandler("socialnetwork", "OnFillSocNetMenu", "renameGroups");
-
-function renameGroups(&$arResult, $arEntity)
-{
-
-    $arResult["Group"]["NAME"] = $arResult["Group"]["NAME"]."&nbsp;&nbsp;".$arResult["Group"]['UF_PROGRESS']."%";
-//    $content = str_replace('Workgroup', 'Project',$content);
-//    $content = str_replace('>workgroup', '>project',$content);
-
-//
-//    $re = '(>[\s]*?Workgroup)([a-z]*?)[.\s]*?</m';
-//    $str = $content;
-//    $content = preg_replace($re, 'Project$2', $str);
-}
 AddEventHandler("crm", "OnAfterCrmCompanyAdd", "CreateProject");
 AddEventHandler("crm", "OnAfterCrmCompanyUpdate", "CreateProject");
 
