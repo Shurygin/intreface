@@ -30,7 +30,6 @@ function CreateProject($arFields){
         $groupTitle=$arFields['TITLE'];
         $ownerID=$userID;
         $arGroupFields['NAME']=$groupTitle;
-        $arGroupFields['UF_DEPARTMENT']=163;
         $arGroupFields['SUBJECT_ID']=2;
         $arGroupFields['SITE_ID']='s1';
         $arGroupFields["INITIATE_PERMS"]='K';
