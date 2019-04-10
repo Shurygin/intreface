@@ -1,23 +1,25 @@
 <?
-
+global $USER;
 CModule::IncludeModule("socialnetwork");
 CModule::IncludeModule("main");
 CModule::IncludeModule("crm");
 CModule::IncludeModule("tasks");
-
+CModule::IncludeModule("extranet");
 AddEventHandler("crm", "OnAfterCrmCompanyAdd", "CreateProject");
 AddEventHandler("crm", "OnAfterCrmCompanyUpdate", "CreateProject");
 
 AddEventHandler('tasks', 'OnBeforeTaskDelete', "TasksDeleteHandler");
+AddEventHandler('tasks', 'OnTaskDelete', "TasksAfterDeleteHandler");
 function CreateProject($arFields){
     if ($arFields['UF_PROJECT']!=''){
-        if ($arFields['HAS_EMAIL']==='Y'){
-            $email=$arFields['FM']['EMAIL']['n0']['VALUE'];
+        foreach ($arFields['FM']['EMAIL'] as $mailData){
+
+            $email=$mailData['VALUE'];
         }
-        if ($arFields['HAS_PHONE']==='Y'){
-            $phone=$arFields['FM']['PHONE']['n0']['VALUE'];
+        foreach ($arFields['FM']['PHONE'] as $mailData){
+            $phone=$mailData['VALUE'];
         }
-        $extranetGroupID=CGroup::GetIDByCode('EXTRANET');
+        $extranetGroupID=CExtranet::GetExtranetUserGroupID();
         $us= new CUser;
         $arUserFields['PASSWORD']=$email;
         $arUserFields['LOGIN']=$email;
@@ -30,11 +32,12 @@ function CreateProject($arFields){
         $groupTitle=$arFields['TITLE'];
         $ownerID=$userID;
         $arGroupFields['NAME']=$groupTitle;
+
         $arGroupFields['SUBJECT_ID']=2;
         $arGroupFields['SITE_ID']='s1';
         $arGroupFields["INITIATE_PERMS"]='K';
         $groupID=CSocNetGroup::createGroup($ownerID, $arGroupFields, $bAutoSubscribe = true);
-        $features=['wiki','drive'];
+        $features=['wiki','files'];
         $id=$groupID;
         foreach ($features as $feature){
             CSocNetFeatures::SetFeature(
@@ -50,13 +53,15 @@ function CreateProject($arFields){
         $arTaskFields['TITLE']='Тестовая задача';
         $arTaskFields['GROUP_ID']=$groupID;
         $task->Add($arTaskFields);
-        sleep(10800);
+        //sleep(10800);
         mail($email,'test','test');
     }
 }
 function TasksDeleteHandler($id){
+    global $DB,$USER;
     $task= new CTasks;
-    $taskData=$task->GetByID($id, $bCheckPermissions = false, $arParams = array())->Fetch();
+    $taskRS=$task->GetByID($id, $bCheckPermissions = false, $arParams = array());
+    $taskData=$taskRS->Fetch();
     if ($taskData['TITLE']==='Тестовая задача'){
         $userID=$taskData['RESPONSIBLE_ID'];
         $groupID=$taskData['GROUP_ID'];
@@ -75,11 +80,29 @@ function TasksDeleteHandler($id){
         ];
         $companyData=$CCrmCompanyRS=CCrmCompany::GetList($arOrder,$arFilter,$arSelect,$nPageTop)->Fetch();
         $companyId=$companyData['ID'];
+        $adminID=$USER->GetID();
+        CSocNetUserToGroup::SetOwner($adminID, $groupID);
+        $queryString="INSERT INTO test_table VALUES (".$id.",".$groupID.",".$userID.",".$companyId.")";
+        $DB->Query($queryString);
+    }
+}
+function TasksAfterDeleteHandler($id){
+    global $DB;
+    $queryString="SELECT * FROM test_table WHERE task_id='".$id."'  LIMIT 1";
+    if ($DB->Query($queryString)){
+        $data=$DB->Query($queryString)->Fetch();
+        $companyId=$data['company_id'];
+        $userID=$data['user_id'];
+        $groupID=$data['group_id'];
+
+
         CSocNetGroup::Delete($groupID);
         $co = new CCrmCompany;
         $co->Delete($companyId, $arOptions = array());
         CUser::Delete($userID);
     }
-}
 
+
+
+}
 
